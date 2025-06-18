@@ -1,109 +1,150 @@
 // API route for generating business names and social handles
-import { NextResponse } from 'next/server';
-import { generateBusinessNames } from '@/lib/openai';
-import { generateBusinessNamesWithOpenAIStream, parseBusinessNames, BRAND_NAME_SYSTEM_PROMPT } from '@/lib/openai-stream';
-import { BusinessName } from '@/types';
+import { NextResponse } from "next/server";
+import { generateBusinessNames } from "@/lib/openai";
+import {
+  generateBusinessNamesWithOpenAIStream,
+} from "@/lib/openai-stream";
+import { BusinessName } from "@/types";
 
 // Add support for streaming responses
-export const runtime = 'edge';
+export const runtime = "edge";
 
 export async function POST(req: Request) {
   try {
     // Parse request body
-    const { prompt, useFastModel, stream = false } = await req.json();
-    
+    const { prompt, stream = false, existingNames = [] } = await req.json();
+
     if (!prompt) {
-      return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Prompt is required" },
+        { status: 400 }
+      );
     }
+
+    // Generate names for faster response
+    const count = 18;
     
-    // Default to 40 names
-    const count = 40;
-    
-    // Choose model based on useFastModel flag
-    const model = useFastModel ? 'gpt-3.5-turbo' : 'gpt-4o-mini';
-    console.log(`Using model: ${model} with${stream ? '' : 'out'} streaming`);
-    
+    // Log if we're handling a "Load More" request
+    if (existingNames.length > 0) {
+      console.log(`Load More request with ${existingNames.length} existing names`);
+    }
+
+    // Always use gpt-4o-mini for best results
+    const model = "gpt-4o-mini";
+    console.log(`Using model: ${model} with${stream ? "" : "out"} streaming`);
+
     // If streaming is requested, use SSE
     if (stream) {
       const encoder = new TextEncoder();
       const streamResponse = new ReadableStream({
         async start(controller) {
           // Send initial message
-          controller.enqueue(encoder.encode('event: start\ndata: {"status":"started"}\n\n'));
-          
+          controller.enqueue(
+            encoder.encode('event: start\ndata: {"status":"started"}\n\n')
+          );
+
           try {
-            // Use streaming API
+            // Use streaming API with proper await
             await generateBusinessNamesWithOpenAIStream(
-              prompt, 
-              count, 
+              prompt,
+              count,
               model,
               (chunk: BusinessName) => {
                 // Send each name as it's generated
                 controller.enqueue(
-                  encoder.encode(`event: chunk\ndata: ${JSON.stringify(chunk)}\n\n`)
+                  encoder.encode(
+                    `event: chunk\ndata: ${JSON.stringify(chunk)}\n\n`
+                  )
                 );
-              }
+              },
+              existingNames // Pass existing names to avoid duplicates
             );
             
             // Send completion message
             controller.enqueue(
-              encoder.encode('event: complete\ndata: {"status":"complete"}\n\n')
+              encoder.encode(
+                'event: complete\ndata: {"status":"complete"}\n\n'
+              )
             );
-          } catch (error: any) {
-            console.error('Streaming error:', error);
-            // Send error message
+            controller.close();
+          } catch (error) {
+            console.error("Streaming error:", error);
+            // Don't close the controller here, as we've already sent some names
             controller.enqueue(
-              encoder.encode(`event: error\ndata: ${JSON.stringify({ 
-                error: error.message || 'Unknown error' 
-              })}\n\n`)
+              encoder.encode(
+                `event: error\ndata: {"error":"${error instanceof Error ? error.message : 'Unknown error'}"}\n\n`
+              )
             );
-          } finally {
             controller.close();
           }
         },
       });
-      
+
       // Return the stream response
       return new Response(streamResponse, {
         headers: {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
         },
       });
-    }
-    
-    // Non-streaming approach (original implementation)
-    console.time('total_generation_time');
-    let businessNames = await generateBusinessNames(prompt, count, model);
-    
-    // If we didn't get enough names, make additional calls to reach 40
-    if (businessNames.length < count) {
-      console.log(`Only got ${businessNames.length} names, making additional calls to reach ${count}`);
-      
-      // Make additional calls until we reach the desired count
-      while (businessNames.length < count) {
-        const additionalPrompt = `I need ${count - businessNames.length} MORE unique business names for: ${prompt}. Please generate ONLY the additional names needed.`;
+    } else {
+      // For non-streaming response, use regular API call
+      console.time("openai_api_call");
+      const startTime = Date.now();
+
+      try {
+        // Generate business names using OpenAI
+        const generatedNames = await generateBusinessNames(prompt, count, model);
         
-        const additionalNames = await generateBusinessNames(additionalPrompt, count - businessNames.length, model);
-        
-        // Add the additional names to our list
-        businessNames = [...businessNames, ...additionalNames];
-        
-        // Avoid infinite loops if we're not getting new names
-        if (additionalNames.length === 0) break;
+        // Filter out any names that already exist in the existingNames array
+        let filteredNames = generatedNames;
+        if (existingNames.length > 0) {
+          filteredNames = generatedNames.filter(name => 
+            !existingNames.includes(name.name)
+          );
+          
+          console.log(`Filtered out ${generatedNames.length - filteredNames.length} duplicate names`);
+          
+          // If we filtered out too many names and have fewer than requested,
+          // we could make another API call to get more unique names
+          if (filteredNames.length < count / 2) {
+            console.log(`Too many duplicates, generating additional names...`);
+            const additionalNames = await generateBusinessNames(prompt, count, model);
+            
+            // Filter these additional names too
+            const additionalFiltered = additionalNames.filter(name => 
+              !existingNames.includes(name.name) && 
+              !filteredNames.some(existing => existing.name === name.name)
+            );
+            
+            // Add the additional filtered names to our results
+            filteredNames = [...filteredNames, ...additionalFiltered];
+            console.log(`Added ${additionalFiltered.length} additional unique names`);
+          }
+        }
+
+        // Log timing information
+        const apiDuration = Date.now() - startTime;
+        console.timeEnd("openai_api_call");
+        console.log(`OpenAI API call took ${apiDuration}ms`);
+
+        // Return the results
+        return NextResponse.json({ results: filteredNames });
+      } catch (error) {
+        console.error("Error generating business names:", error);
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        return NextResponse.json(
+          { error: `Failed to generate business names: ${errorMessage}` },
+          { status: 500 }
+        );
       }
     }
-    
-    // Limit to the requested count
-    businessNames = businessNames.slice(0, count);
-    console.timeEnd('total_generation_time');
-    
-    return NextResponse.json({ results: businessNames });
-  } catch (error: any) {
-    console.error('Error generating business names:', error);
+  } catch (error) {
+    console.error("Error processing request:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: `Failed to generate business names: ${error.message || 'Unknown error'}` },
+      { error: `Failed to process request: ${errorMessage}` },
       { status: 500 }
     );
   }

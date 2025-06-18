@@ -16,7 +16,6 @@ export function PromptArea({ onGenerate }: PromptAreaProps) {
   const [prompt, setPrompt] = useState('')
   const [isEnhancing, setIsEnhancing] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
-  const [useFastModel, setUseFastModel] = useState(false)
   const [generationStartTime, setGenerationStartTime] = useState<number | null>(null)
   const [estimatedTimeRemaining, setEstimatedTimeRemaining] = useState<number | null>(null)
 
@@ -55,9 +54,8 @@ export function PromptArea({ onGenerate }: PromptAreaProps) {
       interval = setInterval(() => {
         const elapsedSeconds = Math.floor((Date.now() - generationStartTime) / 1000);
         
-        // Estimate remaining time based on model type
-        // GPT-3.5 typically takes ~15-20 seconds, GPT-4 takes ~45-60 seconds
-        const totalEstimatedTime = useFastModel ? 20 : 50;
+        // Estimate remaining time - GPT-4 typically takes ~45-60 seconds
+        const totalEstimatedTime = 50;
         const remaining = Math.max(0, totalEstimatedTime - elapsedSeconds);
         
         setEstimatedTimeRemaining(remaining);
@@ -80,14 +78,14 @@ export function PromptArea({ onGenerate }: PromptAreaProps) {
       if (interval) clearInterval(interval);
       if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [isGenerating, generationStartTime, useFastModel]);
+  }, [isGenerating, generationStartTime]);
 
   const handleGenerateNames = async () => {
     if (!prompt.trim()) return
     
     setIsGenerating(true)
     setGenerationStartTime(Date.now())
-    setEstimatedTimeRemaining(useFastModel ? 20 : 50) // Initial estimate
+    setEstimatedTimeRemaining(50) // Initial estimate
     
     try {
       // Use streaming API if available
@@ -102,7 +100,6 @@ export function PromptArea({ onGenerate }: PromptAreaProps) {
           },
           body: JSON.stringify({ 
             prompt,
-            useFastModel,
             stream: true
           }),
         })
@@ -212,8 +209,7 @@ export function PromptArea({ onGenerate }: PromptAreaProps) {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ 
-            prompt,
-            useFastModel 
+            prompt 
           }),
         })
         
@@ -256,38 +252,31 @@ export function PromptArea({ onGenerate }: PromptAreaProps) {
           />
         </div>
         
-        <div className="flex flex-wrap gap-3 items-center justify-between w-full">
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="fast-mode"
-              checked={useFastModel}
-              onChange={(e) => setUseFastModel(e.target.checked)}
-              className="rounded border-gray-700 bg-black/20 text-orange-500 focus:ring-orange-500/30"
-            />
-            <label htmlFor="fast-mode" className="text-sm text-gray-300 flex items-center gap-1">
-              Fast Mode
-              <span className="text-xs text-gray-500">(quicker but less creative results)</span>
-            </label>
-          </div>
-          
-          <div className="flex flex-wrap gap-3">
-            <Button 
-              variant="outline" 
-              onClick={handleEnhancePrompt}
-              disabled={isEnhancing || !prompt.trim()}
-              className="gap-2 border-gray-700 hover:bg-gray-800 text-sm font-normal h-9 rounded"
-            >
-              <Sparkles className="h-4 w-4" />
-              Enhance Description
-              {isEnhancing && <span className="ml-2 animate-pulse">...</span>}
-            </Button>
-            <Button 
-              onClick={handleGenerateNames}
-              disabled={isGenerating || !prompt.trim()}
-              className="gap-2 bg-orange-600 hover:bg-orange-700 text-white text-sm font-normal h-9 rounded"
-            >
-              {isGenerating ? (
+        <div className="flex flex-wrap gap-3 items-center justify-end w-full">
+          <Button 
+            variant="outline" 
+            onClick={handleEnhancePrompt}
+            disabled={isEnhancing || !prompt.trim()}
+            className="gap-2 border-gray-700 hover:bg-gray-800 text-sm font-normal h-9 rounded"
+          >
+            {isEnhancing ? (
+              <>
+                <Sparkles className="h-4 w-4 animate-spin" />
+                Enhancing...
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4" />
+                Enhance Description
+              </>
+            )}
+          </Button>
+          <Button 
+            onClick={handleGenerateNames}
+            disabled={isGenerating || !prompt.trim()}
+            className="gap-2 bg-orange-600 hover:bg-orange-700 text-white text-sm font-normal h-9 rounded"
+          >
+            {isGenerating ? (
               <>
                 <Wand2 className="h-4 w-4 animate-spin" />
                 <div className="flex flex-col gap-1 items-start">
@@ -298,16 +287,16 @@ export function PromptArea({ onGenerate }: PromptAreaProps) {
                       <>Generating your names...</>
                     )}
                   </span>
-                  {estimatedTimeRemaining !== null && (
-                    <div className="w-full h-1 bg-gray-800 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-orange-500 transition-all duration-1000 ease-linear"
-                        style={{ 
-                          width: `${Math.max(0, 100 - (estimatedTimeRemaining / (useFastModel ? 20 : 50) * 100))}%` 
-                        }}
-                      />
-                    </div>
-                  )}
+                  <div className="w-full bg-gray-800 h-1 rounded-full overflow-hidden">
+                    <div 
+                      className="bg-orange-500 h-1 transition-all duration-1000 ease-linear" 
+                      style={{ 
+                        width: estimatedTimeRemaining !== null 
+                          ? `${Math.max(0, 100 - (estimatedTimeRemaining / 50 * 100))}%` 
+                          : '0%' 
+                      }}
+                    />
+                  </div>
                 </div>
               </>
             ) : (
@@ -316,8 +305,7 @@ export function PromptArea({ onGenerate }: PromptAreaProps) {
                 Generate Names
               </>
             )}
-              </Button>
-          </div>
+          </Button>
         </div>
       </div>
     </div>

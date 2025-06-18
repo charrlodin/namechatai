@@ -27,15 +27,17 @@ export interface BusinessNameCardProps {
   description: string;
   domains: DomainInfo[];
   socialHandles: SocialHandle[];
+  onCheckDomain: (domainName: string, index: number) => void;
 }
 
 export function BusinessNameCard({
   name,
-  available,
   pronunciation,
   description,
+  // available, // Not currently used
   domains,
-  socialHandles
+  socialHandles,
+  onCheckDomain,
 }: BusinessNameCardProps) {
   // State to track domain availability checks
   // Initialize domains with checked=false to hide availability status until checked
@@ -45,6 +47,9 @@ export function BusinessNameCard({
 
   // Check domain availability using our API
   const checkDomainAvailability = async (domainName: string, index: number) => {
+    // Call the parent handler
+    onCheckDomain(domainName, index);
+    
     // Update domain state to show loading
     setDomainStates(prev => {
       const updated = [...prev];
@@ -186,30 +191,34 @@ export function BusinessNameCard({
             {domainStates.map((domain, i) => (
               <div
                 key={i}
-                className="flex items-center justify-between"
+                className="flex flex-wrap items-center justify-between gap-2"
               >
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <Globe className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                  <span className="text-sm truncate">{domain.name}</span>
+                </div>
+                
                 <div className="flex items-center gap-2">
-                  <Globe className="h-3.5 w-3.5 text-gray-400" />
-                  <span className="text-sm">{domain.name}</span>
+                  {/* Status badges */}
                   {domain.checked && domain.available === true && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-sm flex items-center gap-1">
+                    <>
+                      <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-sm flex items-center gap-1 whitespace-nowrap">
                         <Check className="h-3 w-3" /> Available
                       </span>
                       {domain.price && (
-                        <span className="text-xs bg-orange-500/30 text-orange-400 px-2 py-0.5 rounded-sm font-medium">
+                        <span className="text-xs bg-orange-500/30 text-orange-400 px-2 py-0.5 rounded-sm font-medium whitespace-nowrap">
                           {domain.price}
                         </span>
                       )}
-                    </div>
+                    </>
                   )}
                   {domain.checked && domain.available === false && (
-                    <span className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded-sm">
+                    <span className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded-sm whitespace-nowrap">
                       Taken
                     </span>
                   )}
                   {domain.checked && domain.error && (
-                    <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-sm">
+                    <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-sm whitespace-nowrap">
                       {domain.error}
                     </span>
                   )}
@@ -217,7 +226,7 @@ export function BusinessNameCard({
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="h-7 px-3 border-gray-800 bg-transparent hover:bg-gray-800 text-xs"
+                  className="h-7 px-3 border-gray-800 bg-transparent hover:bg-gray-800 text-xs ml-2"
                   onClick={() => checkDomainAvailability(domain.name, i)}
                   disabled={domain.isChecking}
                 >

@@ -9,13 +9,15 @@ interface DomainPriceResult {
   error?: string;
 }
 
-// Error codes from Namecheap API
+// Error codes from Namecheap API - used for error message mapping
+// These are kept for reference and potential future error handling improvements
+/* 
 const ERROR_CODES: Record<string, string> = {
   '3031510': 'Error response from domain provider',
   '3011511': 'Unknown response from the provider',
-  '3011500': 'Unknown error from domain provider',
-  '3031500': 'Domain not found',
+  '2011169': 'Only 50 domains are allowed in a single check command'
 };
+*/
 
 export async function POST(req: NextRequest) {
   try {

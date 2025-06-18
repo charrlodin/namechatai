@@ -1,6 +1,6 @@
 'use client'
 
-import { BusinessNameCard, SocialHandle } from '@/components/business-name-card'
+import { BusinessNameCard } from '@/components/business-name-card'
 
 export function ExamplesSection() {
   // Example data for the business name cards
@@ -57,6 +57,7 @@ export function ExamplesSection() {
               description={business.description}
               domains={business.domains}
               socialHandles={business.socialHandles}
+              onCheckDomain={(domainName, idx) => console.log(`Checking example domain ${domainName} at index ${idx}`)}
             />
           ))}
         </div>

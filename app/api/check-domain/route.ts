@@ -42,6 +42,8 @@ export async function POST(req: NextRequest) {
     // The IP address that's whitelisted in your Namecheap account
     const clientIp = process.env.NAMECHEAP_CLIENT_IP;
     
+    // Using real API calls in all environments
+    
     // Validate required environment variables
     if (!apiKey || !username || !clientIp) {
       console.error('Missing Namecheap API environment variables');
@@ -198,7 +200,9 @@ export async function POST(req: NextRequest) {
 /**
  * Provides a mock response for domain availability when the API is unavailable
  * This is useful for development and demo purposes
+ * Currently not used as we're using real API calls in all environments
  */
+/*
 function useMockResponse(domain: string): DomainCheckResult {
   console.log(`Using mock response for domain: ${domain}`);
   
@@ -209,7 +213,8 @@ function useMockResponse(domain: string): DomainCheckResult {
   const mockResult: DomainCheckResult = {
     domain,
     available: isAvailable,
-    isPremium: domain.length < 6, // Short domains are premium
+    isPremium: false,
+    error: undefined
   };
   
   if (mockResult.isPremium && mockResult.available) {
@@ -218,3 +223,4 @@ function useMockResponse(domain: string): DomainCheckResult {
   
   return mockResult;
 }
+*/
