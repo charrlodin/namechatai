@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Sparkles, Wand2 } from 'lucide-react'
+import { apiFetch } from '@/lib/api-helpers'
 
 import { BusinessName } from '@/types'
 
@@ -24,17 +25,13 @@ export function PromptArea({ onGenerate }: PromptAreaProps) {
     
     setIsEnhancing(true)
     try {
-      const response = await fetch('/api/enhance', {
+      const response = await apiFetch('/api/enhance', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ prompt }),
-      })
-      
-      if (!response.ok) {
-        throw new Error('Failed to enhance prompt')
-      }
+      }, 'generate')
       
       const data = await response.json()
       setPrompt(data.enhancedPrompt)
@@ -93,7 +90,7 @@ export function PromptArea({ onGenerate }: PromptAreaProps) {
       
       if (useStreaming) {
         // Make streaming request
-        const response = await fetch('/api/generate', {
+        const response = await apiFetch('/api/generate', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -102,11 +99,7 @@ export function PromptArea({ onGenerate }: PromptAreaProps) {
             prompt,
             stream: true
           }),
-        })
-        
-        if (!response.ok) {
-          throw new Error('Failed to generate names')
-        }
+        }, 'generate')
         
         // Process the SSE stream
         const reader = response.body?.getReader()
@@ -203,7 +196,7 @@ export function PromptArea({ onGenerate }: PromptAreaProps) {
         }
       } else {
         // Fallback to non-streaming API
-        const response = await fetch('/api/generate', {
+        const response = await apiFetch('/api/generate', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -211,11 +204,7 @@ export function PromptArea({ onGenerate }: PromptAreaProps) {
           body: JSON.stringify({ 
             prompt 
           }),
-        })
-        
-        if (!response.ok) {
-          throw new Error('Failed to generate names')
-        }
+        }, 'generate')
         
         const data = await response.json()
         
@@ -272,9 +261,10 @@ export function PromptArea({ onGenerate }: PromptAreaProps) {
             )}
           </Button>
           <Button 
+            variant="accent"
             onClick={handleGenerateNames}
             disabled={isGenerating || !prompt.trim()}
-            className="gap-2 bg-orange-600 hover:bg-orange-700 text-white text-sm font-normal h-9 rounded"
+            className="gap-2 text-sm font-normal h-9 rounded"
           >
             {isGenerating ? (
               <>

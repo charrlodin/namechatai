@@ -5,12 +5,33 @@ import {
   generateBusinessNamesWithOpenAIStream,
 } from "@/lib/openai-stream";
 import { BusinessName } from "@/types";
+import { checkRateLimit, incrementRateLimit, RATE_LIMITS } from "@/lib/redis";
 
 // Add support for streaming responses
 export const runtime = "edge";
 
 export async function POST(req: Request) {
   try {
+    // Get client IP for rate limiting
+    const ip = req.headers.get('x-forwarded-for') || 
+              req.headers.get('x-real-ip') || 
+              '127.0.0.1';
+    
+    // Check rate limit before processing
+    const rateLimit = await checkRateLimit(ip, 'generate');
+    
+    if (rateLimit.isLimited) {
+      return NextResponse.json(
+        { 
+          error: `Daily generation limit reached (${RATE_LIMITS.GENERATIONS_PER_DAY}/day). Please try again tomorrow.`,
+          rateLimitRemaining: 0,
+          rateLimitTotal: RATE_LIMITS.GENERATIONS_PER_DAY,
+          quotaExceeded: true
+        },
+        { status: 429 }
+      );
+    }
+    
     // Parse request body
     const { prompt, stream = false, existingNames = [] } = await req.json();
 
@@ -35,6 +56,10 @@ export async function POST(req: Request) {
 
     // If streaming is requested, use SSE
     if (stream) {
+      // Increment rate limit counter for streaming requests
+      await incrementRateLimit(ip, 'generate');
+      const newRateLimit = await checkRateLimit(ip, 'generate');
+      
       const encoder = new TextEncoder();
       const streamResponse = new ReadableStream({
         async start(controller) {
@@ -44,6 +69,16 @@ export async function POST(req: Request) {
           );
 
           try {
+            // Send rate limit info
+            controller.enqueue(
+              encoder.encode(
+                `event: ratelimit\ndata: ${JSON.stringify({
+                  remaining: newRateLimit.remaining,
+                  total: newRateLimit.total
+                })}\n\n`
+              )
+            );
+            
             // Use streaming API with proper await
             await generateBusinessNamesWithOpenAIStream(
               prompt,
@@ -92,6 +127,10 @@ export async function POST(req: Request) {
       // For non-streaming response, use regular API call
       console.time("openai_api_call");
       const startTime = Date.now();
+      
+      // Increment rate limit counter
+      await incrementRateLimit(ip, 'generate');
+      const newRateLimit = await checkRateLimit(ip, 'generate');
 
       try {
         // Generate business names using OpenAI
@@ -129,8 +168,17 @@ export async function POST(req: Request) {
         console.timeEnd("openai_api_call");
         console.log(`OpenAI API call took ${apiDuration}ms`);
 
-        // Return the results
-        return NextResponse.json({ results: filteredNames });
+        // Return the filtered names
+        return NextResponse.json({
+          names: filteredNames,
+          timing: {
+            total: Date.now() - startTime,
+            openai: apiDuration,
+            parsing: 0,
+          },
+          rateLimitRemaining: newRateLimit.remaining,
+          rateLimitTotal: newRateLimit.total
+        });
       } catch (error) {
         console.error("Error generating business names:", error);
         const errorMessage = error instanceof Error ? error.message : "Unknown error";

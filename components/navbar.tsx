@@ -37,8 +37,8 @@ export function Navbar() {
             Login
           </Link>
           <Button 
-            variant="outline" 
-            className="border border-gray-700 hover:bg-gray-800 text-sm font-normal h-9 rounded" 
+            variant="accent" 
+            className="text-sm font-normal h-9 rounded" 
             asChild
           >
             <Link href="/register">Register</Link>

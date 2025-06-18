@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Check, Globe, Copy, Facebook, Instagram, Twitter, Loader2 } from 'lucide-react'
+import { showQuotaExceededToast } from '@/lib/quota-toast'
+import { apiFetch } from '@/lib/api-helpers'
 
 // Define types for the component props
 export interface DomainInfo {
@@ -59,21 +61,16 @@ export function BusinessNameCard({
     
     try {
       // Step 1: Check domain availability
-      const availabilityResponse = await fetch('/api/check-domain', {
+      const availabilityResponse = await apiFetch('/api/check-domain', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ domain: domainName }),
-      });
+      }, 'domain-check');
       
+      // apiFetch already handles 429 responses and shows appropriate toasts
       const availabilityData = await availabilityResponse.json();
-      
-      // Check if the response contains an error
-      if (!availabilityResponse.ok || availabilityData.error) {
-        // Handle API error with the error message from the response if available
-        throw new Error(availabilityData.error || 'Failed to check domain availability');
-      }
       
       // If domain is available, get pricing information
       let priceInfo = { price: undefined, currency: 'USD' };
@@ -84,7 +81,7 @@ export function BusinessNameCard({
           const userLocation = navigator.language || 'en-US';
           
           // Step 2: Get pricing information
-          const priceResponse = await fetch('/api/get-domain-price', {
+          const priceResponse = await apiFetch('/api/get-domain-price', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -93,11 +90,11 @@ export function BusinessNameCard({
               domain: domainName,
               userLocation
             }),
-          });
+          }, 'domain-check');
           
           const priceData = await priceResponse.json();
           
-          if (priceResponse.ok && !priceData.error && priceData.price) {
+          if (priceData.price) {
             priceInfo = {
               price: priceData.price.toFixed(2),
               currency: priceData.currency || 'USD'
@@ -224,9 +221,9 @@ export function BusinessNameCard({
                   )}
                 </div>
                 <Button 
-                  variant="outline" 
+                  variant="accent" 
                   size="sm" 
-                  className="h-7 px-3 border-gray-800 bg-transparent hover:bg-gray-800 text-xs ml-2"
+                  className="h-7 px-3 text-xs ml-2"
                   onClick={() => checkDomainAvailability(domain.name, i)}
                   disabled={domain.isChecking}
                 >

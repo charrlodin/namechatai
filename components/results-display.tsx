@@ -6,6 +6,8 @@ import { BusinessNameCard, DomainInfo } from '@/components/business-name-card'
 import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
 import { BusinessName } from '@/types'
+import { RateLimitIndicator } from '@/components/rate-limit-indicator'
+// Toast import removed - not used in this component
 
 // Use the imported BusinessName type from @/types
 
@@ -17,9 +19,18 @@ type ResultsDisplayProps = {
   isLoading?: boolean
   isStreaming?: boolean
   onLoadMore?: (existingNames: string[]) => void
+  domainCheckRateLimit?: { remaining?: number; total?: number }
+  // setDomainCheckRateLimit removed as it's not used in this component
 }
 
-export function ResultsDisplay({ results, isLoading = false, isStreaming = false, onLoadMore }: ResultsDisplayProps) {
+export function ResultsDisplay({ 
+  results, 
+  isLoading = false, 
+  isStreaming = false, 
+  onLoadMore,
+  domainCheckRateLimit
+}: ResultsDisplayProps) {
+  // No toast used in this component
   // Display state - how many items to show
   const [displayCount, setDisplayCount] = useState(9) // Initially show 9 items
   const itemsPerBatch = 9 // How many more items to load each time
@@ -202,12 +213,34 @@ export function ResultsDisplay({ results, isLoading = false, isStreaming = false
   // Get the items to display based on the current display count
   const displayedItems = transformedResults.slice(0, displayCount);
   
+  // Show rate limit indicator if we have domain check rate limit info
+  const showRateLimitIndicator = domainCheckRateLimit?.remaining !== undefined && 
+                                domainCheckRateLimit?.total !== undefined;
+
   return (
     <div className="container mx-auto px-4 mt-12 mb-20">
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-medium">Generated Names</h2>
+          <h2 className="text-2xl font-bold">Generated Business Names</h2>
+          {isStreaming && (
+            <div className="flex items-center">
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              <span className="text-sm text-gray-400">Generating...</span>
+            </div>
+          )}
         </div>
+        
+        {/* Show rate limit indicator for domain checks */}
+        {showRateLimitIndicator && domainCheckRateLimit && (
+          <div className="mb-6">
+            <RateLimitIndicator
+              remaining={domainCheckRateLimit.remaining || 0}
+              total={domainCheckRateLimit.total || 0}
+              type="domain-check"
+              className="max-w-xs"
+            />
+          </div>
+        )}
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" aria-live="polite">
           {displayedItems.map((result, index) => (
@@ -226,10 +259,10 @@ export function ResultsDisplay({ results, isLoading = false, isStreaming = false
         
         <div className="flex items-center justify-center mt-8">
           <Button 
-            variant="outline" 
+            variant="accent" 
             size="sm" 
             onClick={loadMore} 
-            className="border-gray-800 bg-transparent hover:bg-gray-800 px-8"
+            className="px-8"
             disabled={isLoading}
           >
             {isLoading ? (

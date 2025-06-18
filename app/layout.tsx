@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { SonnerProvider } from "@/components/sonner-provider";
+import { QuotaProvider } from "@/lib/quota-context";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,10 +26,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
+      <head>
+        {/* Sonner styles are now imported via the package */}
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
-        {children}
+        <SonnerProvider />
+        <QuotaProvider>
+          {children}
+        </QuotaProvider>
       </body>
     </html>
   );

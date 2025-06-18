@@ -28,7 +28,7 @@ export function PricingTable() {
         { name: 'Save favorite names', included: true }
       ],
       buttonText: 'Sign Up',
-      buttonVariant: 'outline' as const,
+      buttonVariant: 'accent' as const,
       popular: false
     },
     {
@@ -42,7 +42,7 @@ export function PricingTable() {
         { name: 'Priority support', included: true }
       ],
       buttonText: 'Subscribe',
-      buttonVariant: 'default' as const,
+      buttonVariant: 'accent' as const,
       popular: true
     }
   ]
@@ -91,11 +91,7 @@ export function PricingTable() {
               
               <Button 
                 variant={plan.buttonVariant} 
-                className={`w-full mt-auto ${
-                  plan.popular 
-                    ? 'bg-orange-500 hover:bg-orange-600 text-black' 
-                    : ''
-                }`}
+                className="w-full mt-auto"
                 aria-label={`Select ${plan.name} plan`}
               >
                 {plan.buttonText}
