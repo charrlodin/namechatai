@@ -21,7 +21,7 @@ export function Footer() {
               </li>
               <li>
                 <a 
-                  href="#" 
+                  href="/privacy" 
                   className="text-sm text-gray-400 hover:text-white focus:text-white transition-colors focus:outline-none focus:underline"
                   aria-label="Privacy Policy"
                 >

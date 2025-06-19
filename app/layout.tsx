@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SonnerProvider } from "@/components/sonner-provider";
 import { QuotaProvider } from "@/lib/quota-context";
+import { CookieBanner } from "@/components/cookie-banner";
+import { ClerkProvider } from "@clerk/nextjs";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,18 +27,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <head>
-        {/* Sonner styles are now imported via the package */}
-      </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
-      >
-        <SonnerProvider />
-        <QuotaProvider>
-          {children}
-        </QuotaProvider>
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en" className="dark">
+        <head>
+          {/* Sonner styles are now imported via the package */}
+        </head>
+        <body
+          className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
+        >
+          <SonnerProvider />
+          <QuotaProvider>
+            {children}
+            <CookieBanner />
+          </QuotaProvider>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

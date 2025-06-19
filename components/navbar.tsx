@@ -4,6 +4,7 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { useEffect, useState } from 'react'
+import { SignInButton, SignUpButton, UserButton, SignedIn, SignedOut } from '@clerk/nextjs'
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false)
@@ -33,16 +34,30 @@ export function Navbar() {
           <Link href="/pricing" className="text-sm font-normal text-gray-300 hover:text-white transition-colors">
             Pricing
           </Link>
-          <Link href="/login" className="text-sm font-normal text-gray-300 hover:text-white transition-colors">
-            Login
-          </Link>
-          <Button 
-            variant="accent" 
-            className="text-sm font-normal h-9 rounded" 
-            asChild
-          >
-            <Link href="/register">Register</Link>
-          </Button>
+          
+          <SignedIn>
+            <Link href="/dashboard" className="text-sm font-normal text-gray-300 hover:text-white transition-colors">
+              Dashboard
+            </Link>
+            <UserButton afterSignOutUrl="/" />
+          </SignedIn>
+          
+          <SignedOut>
+            <SignInButton mode="modal">
+              <Button variant="ghost" className="text-sm font-normal h-9 rounded text-gray-300 hover:text-white">
+                Login
+              </Button>
+            </SignInButton>
+            
+            <SignUpButton mode="modal">
+              <Button 
+                variant="accent" 
+                className="text-sm font-normal h-9 rounded"
+              >
+                Register
+              </Button>
+            </SignUpButton>
+          </SignedOut>
         </nav>
       </div>
     </header>
