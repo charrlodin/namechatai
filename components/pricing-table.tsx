@@ -48,7 +48,7 @@ export function PricingTable() {
   ]
 
   return (
-    <section className="py-16 bg-black" aria-labelledby="pricing-heading">
+    <section id="pricing" className="py-16 bg-black" aria-labelledby="pricing-heading">
       <div className="container mx-auto px-4">
         <h2 id="pricing-heading" className="text-2xl font-medium text-center mb-2">Choose Your Plan</h2>
         <p className="text-gray-400 text-center mb-10">Select the perfect plan for your business naming needs</p>

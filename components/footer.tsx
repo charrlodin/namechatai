@@ -12,7 +12,7 @@ export function Footer() {
             <ul className="flex flex-wrap gap-6 justify-center">
               <li>
                 <a 
-                  href="#" 
+                  href="/terms" 
                   className="text-sm text-gray-400 hover:text-white focus:text-white transition-colors focus:outline-none focus:underline"
                   aria-label="Terms of Service"
                 >

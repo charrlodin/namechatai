@@ -15,16 +15,27 @@ export function showQuotaExceededToast(type: 'generate' | 'domain-check') {
     : 'Domain Check Limit Reached';
 
   const description = type === 'generate'
-    ? 'You\'ve reached your daily limit for name generations. Sign up for unlimited generations!'
-    : 'You\'ve reached your daily limit for domain checks. Sign up for unlimited domain checks!';
+    ? 'You\'ve reached your daily limit for name generations. Upgrade to a premium plan for unlimited generations and advanced features!'
+    : 'You\'ve reached your daily limit for domain checks. Upgrade to a premium plan for unlimited domain checks and priority support!';
 
   toast.error(title, {
     description,
     duration: 8000, // Show for 8 seconds
     id: `quota-exceeded-${type}`, // Prevent duplicate toasts
     action: {
-      label: 'Sign up',
-      onClick: () => window.location.href = '/signup',
+      label: 'View Plans',
+      onClick: () => {
+        // If we're already on the homepage, scroll to pricing section
+        if (window.location.pathname === '/' || window.location.pathname === '') {
+          const pricingSection = document.getElementById('pricing');
+          if (pricingSection) {
+            pricingSection.scrollIntoView({ behavior: 'smooth' });
+          }
+        } else {
+          // If on another page, navigate to homepage with pricing anchor
+          window.location.href = '/#pricing';
+        }
+      },
     },
     className: 'quota-exceeded-toast',
   });
